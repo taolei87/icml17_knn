@@ -79,11 +79,7 @@ class Model(object):
         for i in xrange(depth):
             h = layers[i].forward_all(prev_h, self.init_state[i], return_c=True)
             self.last_state.append(h[-1])
-            now_h = h[:,:,-self.n_d:]
-            if args["highway"]:
-                prev_h = layers[i+depth].forward(prev_h, now_h)
-            else:
-                prev_h = now_h
+            prev_h = h[:,:,-self.n_d:]
 
 
         prev_h = apply_dropout(prev_h, self.dropout)
