@@ -4,6 +4,7 @@ import theano
 import theano.tensor as T
 
 from nn import RecurrentLayer, Layer, sigmoid, linear
+from nn import get_dropout_mask
 
 def read_corpus(path, eos="</s>"):
     data = [ ]
@@ -54,49 +55,60 @@ class KernelNN(object):
                 lambda[t] = sigmoid_gate(x[t], h[t-1])
                 c[t] = lambda[t]*c[t-1] + (1-lambda[t])*(W*x[t])
     '''
-    def __init__(self, n_in, n_out, activation, highway=True):
+    def __init__(self, n_in, n_out, activation, highway=True, dropout=None):
         self.n_in, self.n_out = n_in, n_out
         self.highway = highway
         self.activation = activation
+        self.dropout = dropout
 
         self.lambda_gate = RecurrentLayer(n_in, n_out, sigmoid)
         self.input_layer = Layer(n_in, n_out, linear, has_bias=False)
         if highway:
             self.highway_layer = HighwayLayer(n_out)
 
-    def forward(self, x, hc):
+    def forward(self, x, c_tm1, h_tm1, mask_h):
         assert x.ndim == 2
-        assert hc.ndim == 2
+        assert c_tm1.ndim == 2
+        assert h_tm1.ndim == 2
         n_in, n_out = self.n_in, self.n_out
         activation = self.activation
         lambda_gate, input_layer = self.lambda_gate, self.input_layer
 
-        c_tm1, h_tm1 = hc[:,:n_out], hc[:,n_out:]
-        forget_t = lambda_gate.forward(x, h_tm1)
+        forget_t = lambda_gate.forward(x, h_tm1*mask_h)
         in_t = 1-forget_t
         wx_t = input_layer.forward(x)
         c_t = c_tm1*forget_t + wx_t*in_t
         h_t = activation(c_t)
         if self.highway:
-            h_t = self.highway_layer.forward(x, h_t)
+            h_t = self.highway_layer.forward(x, h_t*mask_h)
 
-        return T.concatenate([c_t, h_t], axis=1)
+        return [c_t, h_t]
 
     def forward_all(self, x, hc0=None, return_c=False):
         assert x.ndim == 3 # size (len, batch, d)
         if hc0 is None:
-            hc0 = T.zeros((x.shape[1], self.n_out*2), dtype=theano.config.floatX)
+            c0 = h0 = T.zeros((x.shape[1], self.n_out), dtype=theano.config.floatX)
+        else:
+            assert hc0.ndim == 2
+            c0, h0 = hc0[:,:self.n_out], hc0[:,self.n_out:]
 
-        #wx = self.input_layer.forward(x)
-        h, _ = theano.scan(
+        if self.dropout is None:
+            mask_h = T.ones((x.shape[1], self.n_out), dtype=theano.config.floatX)
+        else:
+            mask_h = get_dropout_mask((x.shape[1], self.n_out), self.dropout)
+            mask_x = get_dropout_mask((1, x.shape[1], x.shape[2]), self.dropout)
+            x = x*mask_x
+
+        c, h = theano.scan(
                 fn = self.forward,
                 sequences = x,
-                outputs_info = [ hc0 ]
-            )
+                outputs_info = [ c0, h0 ],
+                non_sequences = mask_h
+            )[0]
         if return_c:
-            return h
+            return T.concatenate([c,h], axis=2)
         else:
-            return h[:,:,self.n_out:]
+            return h
 
     @property
     def params(self):

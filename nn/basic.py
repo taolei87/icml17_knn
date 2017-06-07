@@ -62,6 +62,17 @@ def apply_dropout(x, dropout_prob, v2=False):
     return Dropout(dropout_prob, v2=v2).forward(x)
 
 
+def get_dropout_mask(size, dropout_prob, srng=None):
+    srng = srng or default_srng
+    d = 1-dropout_prob
+    return srng.binomial(
+            n = 1,
+            p = 1-dropout_prob,
+            size = size,
+            dtype = theano.config.floatX
+        )/d
+
+
 class Layer(object):
     '''
         Basic neural layer -- y = f(Wx+b)

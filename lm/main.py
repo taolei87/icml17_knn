@@ -54,7 +54,8 @@ class Model(object):
                     n_in = self.n_d,
                     n_out = self.n_d,
                     activation = activation,
-                    highway = args["highway"]
+                    highway = args["highway"],
+                    dropout = self.dropout
                 )
             layers.append(rnn_layer)
 
@@ -70,7 +71,8 @@ class Model(object):
         x_flat = embedding_layer.forward(self.idxs.ravel())
 
         # len * batch * n_d
-        x = apply_dropout(x_flat, self.dropout)
+        #x = apply_dropout(x_flat, self.dropout)
+        x = x_flat
         x = x.reshape( (self.idxs.shape[0], self.idxs.shape[1], self.n_d) )
 
         # len * batch * (n_d+n_d)
