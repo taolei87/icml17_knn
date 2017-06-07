@@ -33,6 +33,8 @@ class Model(object):
 
         dropout_prob = np.float64(args["dropout"]).astype(theano.config.floatX)
         self.dropout = theano.shared(dropout_prob)
+        rnn_dropout_prob = np.float64(args["rnn_dropout"]).astype(theano.config.floatX)
+        self.rnn_dropout = theano.shared(rnn_dropout_prob)
 
         self.n_d = args["hidden_dim"]
 
@@ -55,7 +57,7 @@ class Model(object):
                     n_out = self.n_d,
                     activation = activation,
                     highway = args["highway"],
-                    dropout = self.dropout
+                    dropout = self.rnn_dropout
                 )
             layers.append(rnn_layer)
 
@@ -71,8 +73,8 @@ class Model(object):
         x_flat = embedding_layer.forward(self.idxs.ravel())
 
         # len * batch * n_d
-        #x = apply_dropout(x_flat, self.dropout)
-        x = x_flat
+        x = apply_dropout(x_flat, self.dropout)
+        #x = x_flat
         x = x.reshape( (self.idxs.shape[0], self.idxs.shape[1], self.n_d) )
 
         # len * batch * (n_d+n_d)
@@ -104,6 +106,7 @@ class Model(object):
         embedding_layer = self.layers[-2]
 
         dropout_prob = np.float64(args["dropout"]).astype(theano.config.floatX)
+        rnn_dropout_prob = np.float64(args["rnn_dropout"]).astype(theano.config.floatX)
         batch_size = args["batch_size"]
         unroll_size = args["unroll_size"]
 
@@ -181,6 +184,7 @@ class Model(object):
 
                 if i == N-1:
                     self.dropout.set_value(0.0)
+                    self.rnn_dropout.set_value(0.0)
                     dev_preds = self.evaluate(eval_func, dev, batch_size, unroll_size)
                     dev_loss = evaluate_average(
                             predictions = dev_preds,
@@ -188,6 +192,7 @@ class Model(object):
                         )
                     dev_ppl = np.exp(dev_loss)
                     self.dropout.set_value(dropout_prob)
+                    self.rnn_dropout.set_value(rnn_dropout_prob)
 
                     say("\r\n")
                     say( ( "Epoch={}  lr={:.4f}  train_loss={:.3f}  train_ppl={:.1f}  " \
@@ -209,6 +214,7 @@ class Model(object):
                         best_dev = dev_ppl
                         if test is None: continue
                         self.dropout.set_value(0.0)
+                        self.rnn_dropout.set_value(0.0)
                         test_preds = self.evaluate(eval_func, test, batch_size, unroll_size)
                         test_loss = evaluate_average(
                                 predictions = test_preds,
@@ -216,6 +222,7 @@ class Model(object):
                             )
                         test_ppl = np.exp(test_loss)
                         self.dropout.set_value(dropout_prob)
+                        self.rnn_dropout.set_value(rnn_dropout_prob)
                         say("\tbest_dev={:.1f}  test_loss={:.3f}  test_ppl={:.1f}\n".format(
                                 best_dev, test_loss, test_ppl))
                         if best_dev < 200: unchanged=0

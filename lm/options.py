@@ -26,7 +26,7 @@ def load_arguments():
         )
     argparser.add_argument("--learning_rate",
             type = float,
-            default = 0.01
+            default = 1.0
         )
     argparser.add_argument("--activation", "-act",
             type = str,
@@ -39,6 +39,10 @@ def load_arguments():
     argparser.add_argument("--dropout",
             type = float,
             default = 0.5
+        )
+    argparser.add_argument("--rnn_dropout",
+            type = float,
+            default = 0.25
         )
     argparser.add_argument("--max_epoch",
             type = int,

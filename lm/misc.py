@@ -96,7 +96,8 @@ class KernelNN(object):
             mask_h = T.ones((x.shape[1], self.n_out), dtype=theano.config.floatX)
         else:
             mask_h = get_dropout_mask((x.shape[1], self.n_out), self.dropout)
-            mask_x = get_dropout_mask((1, x.shape[1], x.shape[2]), self.dropout)
+            mask_x = get_dropout_mask((x.shape[1], x.shape[2]), self.dropout)
+            mask_x = mask_x.dimshuffle(('x',0,1))
             x = x*mask_x
 
         c, h = theano.scan(
