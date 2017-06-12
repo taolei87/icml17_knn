@@ -112,10 +112,10 @@ class Model(object):
 
         train = create_batches(train, embedding_layer.map_to_ids, batch_size)
 
-        dev = create_batches(dev, embedding_layer.map_to_ids, batch_size)
+        dev = create_batches(dev, embedding_layer.map_to_ids, 1)
 
         if test is not None:
-            test = create_batches(test, embedding_layer.map_to_ids, batch_size)
+            test = create_batches(test, embedding_layer.map_to_ids, 1)
 
         cost = T.sum(self.nll) / self.idxs.shape[1]
         updates, lr, gnorm = create_optimization_updates(
@@ -185,7 +185,7 @@ class Model(object):
                 if i == N-1:
                     self.dropout.set_value(0.0)
                     self.rnn_dropout.set_value(0.0)
-                    dev_preds = self.evaluate(eval_func, dev, batch_size, unroll_size)
+                    dev_preds = self.evaluate(eval_func, dev, 1, unroll_size)
                     dev_loss = evaluate_average(
                             predictions = dev_preds,
                             masks = None
@@ -215,7 +215,7 @@ class Model(object):
                         if test is None: continue
                         self.dropout.set_value(0.0)
                         self.rnn_dropout.set_value(0.0)
-                        test_preds = self.evaluate(eval_func, test, batch_size, unroll_size)
+                        test_preds = self.evaluate(eval_func, test, 1, unroll_size)
                         test_loss = evaluate_average(
                                 predictions = test_preds,
                                 masks = None
