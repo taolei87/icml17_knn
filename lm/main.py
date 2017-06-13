@@ -29,10 +29,12 @@ class Model(object):
         self.args = args
         self.idxs = T.imatrix()
         self.idys = T.imatrix()
-        self.init_state = [ T.matrix(dtype=theano.config.floatX) for i in xrange(depth) ]
+        self.init_state = [ T.matrix(dtype=theano.config.floatX) for i in xrange(depth*2) ]
 
         dropout_prob = np.float64(args["dropout"]).astype(theano.config.floatX)
         self.dropout = theano.shared(dropout_prob)
+        rnn_dropout_prob = np.float64(args["rnn_dropout"]).astype(theano.config.floatX)
+        self.rnn_dropout = theano.shared(rnn_dropout_prob)
 
         self.n_d = args["hidden_dim"]
 
@@ -54,7 +56,8 @@ class Model(object):
                     n_in = self.n_d,
                     n_out = self.n_d,
                     activation = activation,
-                    highway = args["highway"]
+                    highway = args["highway"],
+                    dropout = self.rnn_dropout
                 )
             layers.append(rnn_layer)
 
@@ -71,15 +74,17 @@ class Model(object):
 
         # len * batch * n_d
         x = apply_dropout(x_flat, self.dropout)
+        #x = x_flat
         x = x.reshape( (self.idxs.shape[0], self.idxs.shape[1], self.n_d) )
 
         # len * batch * (n_d+n_d)
         self.last_state = []
         prev_h = x
         for i in xrange(depth):
-            h = layers[i].forward_all(prev_h, self.init_state[i], return_c=True)
-            self.last_state.append(h[-1])
-            prev_h = h[:,:,-self.n_d:]
+            hidden = self.init_state[i*2:i*2+2]
+            c, h = layers[i].forward_all(prev_h, hidden, return_c=True)
+            self.last_state += [ c[-1], h[-1] ]
+            prev_h = h
 
 
         prev_h = apply_dropout(prev_h, self.dropout)
@@ -102,15 +107,16 @@ class Model(object):
         embedding_layer = self.layers[-2]
 
         dropout_prob = np.float64(args["dropout"]).astype(theano.config.floatX)
+        rnn_dropout_prob = np.float64(args["rnn_dropout"]).astype(theano.config.floatX)
         batch_size = args["batch_size"]
         unroll_size = args["unroll_size"]
 
         train = create_batches(train, embedding_layer.map_to_ids, batch_size)
 
-        dev = create_batches(dev, embedding_layer.map_to_ids, batch_size)
+        dev = create_batches(dev, embedding_layer.map_to_ids, 1)
 
         if test is not None:
-            test = create_batches(test, embedding_layer.map_to_ids, batch_size)
+            test = create_batches(test, embedding_layer.map_to_ids, 1)
 
         cost = T.sum(self.nll) / self.idxs.shape[1]
         updates, lr, gnorm = create_optimization_updates(
@@ -153,15 +159,15 @@ class Model(object):
         max_epoch = args["max_epoch"]
         for epoch in xrange(max_epoch):
             unchanged += 1
-            if unchanged > 10: break
+            if unchanged > 20: break
 
             if decay_epoch > 0 and epoch >= decay_epoch:
                 lr.set_value(np.float32(lr.get_value()*decay_rate))
 
             start_time = time.time()
 
-            prev_state = [ np.zeros((batch_size, self.n_d*2),
-                            dtype=theano.config.floatX) for i in xrange(depth) ]
+            prev_state = [ np.zeros((batch_size, self.n_d),
+                    dtype=theano.config.floatX) for i in xrange(depth*2) ]
 
             train_loss = 0.0
             for i in xrange(N):
@@ -179,13 +185,15 @@ class Model(object):
 
                 if i == N-1:
                     self.dropout.set_value(0.0)
-                    dev_preds = self.evaluate(eval_func, dev, batch_size, unroll_size)
+                    self.rnn_dropout.set_value(0.0)
+                    dev_preds = self.evaluate(eval_func, dev, 1, unroll_size)
                     dev_loss = evaluate_average(
                             predictions = dev_preds,
                             masks = None
                         )
                     dev_ppl = np.exp(dev_loss)
                     self.dropout.set_value(dropout_prob)
+                    self.rnn_dropout.set_value(rnn_dropout_prob)
 
                     say("\r\n")
                     say( ( "Epoch={}  lr={:.4f}  train_loss={:.3f}  train_ppl={:.1f}  " \
@@ -207,13 +215,15 @@ class Model(object):
                         best_dev = dev_ppl
                         if test is None: continue
                         self.dropout.set_value(0.0)
-                        test_preds = self.evaluate(eval_func, test, batch_size, unroll_size)
+                        self.rnn_dropout.set_value(0.0)
+                        test_preds = self.evaluate(eval_func, test, 1, unroll_size)
                         test_loss = evaluate_average(
                                 predictions = test_preds,
                                 masks = None
                             )
                         test_ppl = np.exp(test_loss)
                         self.dropout.set_value(dropout_prob)
+                        self.rnn_dropout.set_value(rnn_dropout_prob)
                         say("\tbest_dev={:.1f}  test_loss={:.3f}  test_ppl={:.1f}\n".format(
                                 best_dev, test_loss, test_ppl))
                         if best_dev < 200: unchanged=0
@@ -223,8 +233,8 @@ class Model(object):
     def evaluate(self, eval_func, dev, batch_size, unroll_size):
         depth = self.args["depth"]
         predictions = [ ]
-        init_state = [ np.zeros((batch_size, self.n_d*2),
-                        dtype=theano.config.floatX) for i in xrange(depth) ]
+        init_state = [ np.zeros((batch_size, self.n_d),
+                dtype=theano.config.floatX) for i in xrange(depth*2) ]
         N = (len(dev[0])-1)/unroll_size + 1
         for i in xrange(N):
             x = dev[0][i*unroll_size:(i+1)*unroll_size]
