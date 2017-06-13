@@ -29,7 +29,7 @@ class Model(object):
         self.args = args
         self.idxs = T.imatrix()
         self.idys = T.imatrix()
-        self.init_state = [ T.matrix(dtype=theano.config.floatX) for i in xrange(depth) ]
+        self.init_state = [ T.matrix(dtype=theano.config.floatX) for i in xrange(depth*2) ]
 
         dropout_prob = np.float64(args["dropout"]).astype(theano.config.floatX)
         self.dropout = theano.shared(dropout_prob)
@@ -81,9 +81,10 @@ class Model(object):
         self.last_state = []
         prev_h = x
         for i in xrange(depth):
-            h = layers[i].forward_all(prev_h, self.init_state[i], return_c=True)
-            self.last_state.append(h[-1])
-            prev_h = h[:,:,-self.n_d:]
+            hidden = self.init_state[i*2:i*2+2]
+            c, h = layers[i].forward_all(prev_h, hidden, return_c=True)
+            self.last_state += [ c[-1], h[-1] ]
+            prev_h = h
 
 
         prev_h = apply_dropout(prev_h, self.dropout)
@@ -158,15 +159,15 @@ class Model(object):
         max_epoch = args["max_epoch"]
         for epoch in xrange(max_epoch):
             unchanged += 1
-            if unchanged > 10: break
+            if unchanged > 20: break
 
             if decay_epoch > 0 and epoch >= decay_epoch:
                 lr.set_value(np.float32(lr.get_value()*decay_rate))
 
             start_time = time.time()
 
-            prev_state = [ np.zeros((batch_size, self.n_d*2),
-                            dtype=theano.config.floatX) for i in xrange(depth) ]
+            prev_state = [ np.zeros((batch_size, self.n_d),
+                    dtype=theano.config.floatX) for i in xrange(depth*2) ]
 
             train_loss = 0.0
             for i in xrange(N):
@@ -232,8 +233,8 @@ class Model(object):
     def evaluate(self, eval_func, dev, batch_size, unroll_size):
         depth = self.args["depth"]
         predictions = [ ]
-        init_state = [ np.zeros((batch_size, self.n_d*2),
-                        dtype=theano.config.floatX) for i in xrange(depth) ]
+        init_state = [ np.zeros((batch_size, self.n_d),
+                dtype=theano.config.floatX) for i in xrange(depth*2) ]
         N = (len(dev[0])-1)/unroll_size + 1
         for i in xrange(N):
             x = dev[0][i*unroll_size:(i+1)*unroll_size]

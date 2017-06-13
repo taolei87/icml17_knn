@@ -18,7 +18,7 @@ def load_arguments():
         )
     argparser.add_argument("--hidden_dim", "-d",
             type = int,
-            default = 200
+            default = 950
         )
     argparser.add_argument("--learning",
             type = str,
@@ -30,7 +30,7 @@ def load_arguments():
         )
     argparser.add_argument("--activation", "-act",
             type = str,
-            default = "tanh"
+            default = "none"
         )
     argparser.add_argument("--batch_size",
             type = int,
@@ -38,23 +38,23 @@ def load_arguments():
         )
     argparser.add_argument("--dropout",
             type = float,
-            default = 0.5
+            default = 0.7
         )
     argparser.add_argument("--rnn_dropout",
             type = float,
-            default = 0.25
+            default = 0.1
         )
     argparser.add_argument("--max_epoch",
             type = int,
-            default = 50
+            default = 100
         )
     argparser.add_argument("--lr_decay",
             type = float,
-            default = 0.9
+            default = 0.98
         )
     argparser.add_argument("--lr_decay_epoch",
             type = int,
-            default = 10
+            default = 20
         )
     argparser.add_argument("--unroll_size",
             type = int,
@@ -62,7 +62,7 @@ def load_arguments():
         )
     argparser.add_argument("--depth",
             type = int,
-            default = 1
+            default = 3
         )
     argparser.add_argument("--eps",
             type = float,

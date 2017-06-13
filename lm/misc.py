@@ -89,8 +89,8 @@ class KernelNN(object):
         if hc0 is None:
             c0 = h0 = T.zeros((x.shape[1], self.n_out), dtype=theano.config.floatX)
         else:
-            assert hc0.ndim == 2
-            c0, h0 = hc0[:,:self.n_out], hc0[:,self.n_out:]
+            assert len(hc0) == 2
+            c0, h0 = hc0
 
         if self.dropout is None:
             mask_h = T.ones((x.shape[1], self.n_out), dtype=theano.config.floatX)
@@ -107,7 +107,7 @@ class KernelNN(object):
                 non_sequences = mask_h
             )[0]
         if return_c:
-            return T.concatenate([c,h], axis=2)
+            return [c, h]
         else:
             return h
 
@@ -126,8 +126,5 @@ class KernelNN(object):
         self.lambda_gate.params = param_list[k1:k1+k2]
         if self.highway:
             self.highway_layer.params = param_list[k1+k2:]
-
-
-
 
 
