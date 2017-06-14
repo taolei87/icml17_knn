@@ -4,7 +4,7 @@
 
 This repo contains the code of the paper:
 
-*Deriving Neural Architectures from Sequence and Graph Kernels. ICML 2017.  [[PDF]]()* 
+*Deriving Neural Architectures from Sequence and Graph Kernels. ICML 2017.  [[PDF]](https://arxiv.org/abs/1705.09037)* 
 
 <br>
 
