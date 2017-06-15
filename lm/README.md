@@ -5,7 +5,7 @@ This example trains a multi-layer string kernel network on Penn Treebank (PTB) l
 
 The model obtains the state-of-the-art result on PTB, getting a test perplexity of ~64.
 
-The following techniques have been adopted for STOA results: 
+The following techniques have been adopted for SOTA results: 
 - [Varational dropout](http://papers.nips.cc/paper/6241-a-theoretically-grounded-application-of-dropout-in-recurrent-neural-networks)
 - [Highway connections](https://arxiv.org/abs/1505.00387)
 - [Weight tying](https://arxiv.org/abs/1608.05859) between word vectors and softmax output embeddings
