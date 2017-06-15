@@ -5,6 +5,10 @@ This example trains a multi-layer string kernel network on Penn Treebank (PTB) l
 
 The model obtains the state-of-the-art result on PTB, getting a test perplexity of ~64.
 
+The following techniques have been adopted for STOA results: 
+- [Varational dropout](http://papers.nips.cc/paper/6241-a-theoretically-grounded-application-of-dropout-in-recurrent-neural-networks)
+- [Highway connections](https://arxiv.org/abs/1505.00387)
+- [Weight tying](https://arxiv.org/abs/1608.05859) between word vectors and softmax output embeddings
 
 ## Data
 
@@ -12,7 +16,6 @@ The PTB data is the processed version from [(Mikolov et al, 2010)](http://www.fi
 
 It can be downloaded from [https://github.com/yoonkim/lstm-char-cnn/tree/master/data/ptb](https://github.com/yoonkim/lstm-char-cnn/tree/master/data/ptb)
 
-<br>
 
 ## Usage
 
