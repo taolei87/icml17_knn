@@ -12,7 +12,7 @@ This repo contains the code of the paper:
 
 * [Molecular graph regression](/graph_knn)
 * [Language modeling on PTB](/lm)
-* Classification on SST
+* [Classification on SST](/sst)
 
 <br>
 
