@@ -9,7 +9,7 @@ from nn import get_activation_by_name, create_optimization_updates, softmax
 from nn import Layer, EmbeddingLayer, Dropout, apply_dropout
 
 from utils import say, load_embedding_iterator
-from misc import read_corpus, create_batches, MKernelNN
+from misc import read_corpus, create_batches, MKernelNN, KernelNN
 from options import load_arguments
 
 np.set_printoptions(precision=3)
@@ -60,14 +60,22 @@ class Model(object):
         softmax_inputs = [ ]
         activation = get_activation_by_name(args.activation)
         for i in range(depth):
-            layer = MKernelNN(
-                    n_in = n_in if i == 0 else n_hidden,
-                    n_out = n_hidden,
-                    activation = activation,
-                    highway = args.highway and (i>0),
-                    dropout = rnn_dropout
-                )
-
+            if args.multiplicative:
+                layer = MKernelNN(
+                        n_in = n_in if i == 0 else n_hidden,
+                        n_out = n_hidden,
+                        activation = activation,
+                        highway = args.highway and (i>0),
+                        dropout = rnn_dropout
+                    )
+            else:
+                layer = KernelNN(
+                        n_in = n_in if i == 0 else n_hidden,
+                        n_out = n_hidden,
+                        activation = activation,
+                        highway = args.highway and (i>0),
+                        dropout = rnn_dropout
+                    )
             layers.append(layer)
             prev_output = layer.forward_all(prev_output)
             if pooling:

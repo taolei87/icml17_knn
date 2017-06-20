@@ -67,7 +67,7 @@ def load_arguments():
         )
     argparser.add_argument("--depth",
             type = int,
-            default = 2,
+            default = 3,
             help = "number of feature extraction layers (min:1)"
         )
     argparser.add_argument("--activation",
@@ -91,6 +91,10 @@ def load_arguments():
             help = "whether to use mean pooling or take the last vector"
         )
     argparser.add_argument("--highway",
+            type = int,
+            default = 0
+        )
+    argparser.add_argument("--multiplicative",
             type = int,
             default = 1
         )
