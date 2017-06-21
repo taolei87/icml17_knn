@@ -128,3 +128,91 @@ class KernelNN(object):
             self.highway_layer.params = param_list[k1+k2:]
 
 
+class FastKernelNN(object):
+    '''
+    Recurrent network derived from sequence kernel (i.e. string kernel)
+
+    The variant that works better for WSJ language modeling is implemented here
+    using the following hyper-parameter configuration:
+
+        1) each layer has n-gram aggregation of n=1
+
+        2) decay factor lambda is controlled using a neural gate:
+                lambda[t] = sigmoid_gate(x[t])
+                c[t] = lambda[t]*c[t-1] + (1-lambda[t])*(W*x[t])
+    '''
+    def __init__(self, n_in, n_out, activation, highway=True, dropout=None):
+        self.n_in, self.n_out = n_in, n_out
+        self.highway = highway
+        self.activation = activation
+        self.dropout = dropout
+
+        self.lambda_gate = Layer(n_in, n_out, sigmoid)
+        self.input_layer = Layer(n_in, n_out, linear, has_bias=False)
+        if highway:
+            self.highway_layer = HighwayLayer(n_out)
+
+    def forward(self, wx_t, forget_t, c_tm1):
+        assert wx_t.ndim == 2
+        assert forget_t.ndim == 2
+        assert c_tm1.ndim == 2
+        return c_tm1*forget_t + wx_t
+
+    def forward_all(self, x, hc0=None, return_c=False):
+        assert x.ndim == 3 # size (len, batch, d)
+        if hc0 is None:
+            c0 = h0 = T.zeros((x.shape[1], self.n_out), dtype=theano.config.floatX)
+        else:
+            assert len(hc0) == 2
+            c0, h0 = hc0
+
+        if self.dropout is None:
+            mask_h = None
+        else:
+            # variational dropout mask (batch_size, d) shared across time steps
+            mask_h = get_dropout_mask((x.shape[1], self.n_out), self.dropout)
+            mask_h = mask_h.dimshuffle(('x',0,1))
+            mask_x = get_dropout_mask((x.shape[1], x.shape[2]), self.dropout)
+            mask_x = mask_x.dimshuffle(('x',0,1))
+            x = x*mask_x
+
+        forget = self.lambda_gate.forward(x) # (len,batch,d)
+        carry = 1-forget
+        wx = self.input_layer.forward(x)*carry
+        assert wx.ndim == 3
+        assert forget.ndim == 3
+
+        c = theano.scan(
+                fn = self.forward,
+                sequences = [wx,forget],
+                outputs_info = c0
+            )[0]
+
+        h = self.activation(c)
+        if self.highway:
+            if mask_h: h = h*mask_h
+            h = self.highway_layer.forward(x, h)
+        assert h.ndim == 3
+
+        if return_c:
+            return [c, h]
+        else:
+            return h
+
+    @property
+    def params(self):
+        lst = self.input_layer.params + self.lambda_gate.params
+        if self.highway:
+            lst += self.highway_layer.params
+        return lst
+
+    @params.setter
+    def params(self, param_list):
+        k1 = len(self.input_layer.params)
+        k2 = len(self.lambda_gate.params)
+        self.input_layer.params = param_list[:k1]
+        self.lambda_gate.params = param_list[k1:k1+k2]
+        if self.highway:
+            self.highway_layer.params = param_list[k1+k2:]
+
+
