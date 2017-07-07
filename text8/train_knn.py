@@ -151,7 +151,10 @@ class FastKNN(nn.Module):
         lstc, lsth = [], []
         for i, rnn in enumerate(self.rnn_lst):
             c, h = rnn(prevx, (prevc[i], prevh[i]))
-            prevx = self.drop_o(h)
+            if i < self.depth-1:
+                prevx = self.drop_o(h)
+            else:
+                prevx = h
             lstc.append(c[-1])
             lsth.append(h[-1])
 
@@ -197,7 +200,7 @@ class Model(nn.Module):
     def forward(self, x, hidden):
         emb = self.drop_x(self.embedding_layer(x))
         output, hidden = self.rnn(emb, hidden)
-        #output = self.drop(output)
+        output = self.drop_x(output)
         output = output.view(-1, output.size(2))
         output = self.output_layer(output)
         return output, hidden
