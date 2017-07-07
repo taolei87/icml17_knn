@@ -126,7 +126,7 @@ class FastKNN(nn.Module):
         self.rnn_dropout = rnn_dropout
         self.rnn_lst = []
         self.seq = nn.Sequential()
-        self.drop_o = nn.Dropout(args.drop_o)
+        self.drop_o = nn.Dropout(drop_o)
 
         for i in range(depth):
             l = FastKNNLayer(
