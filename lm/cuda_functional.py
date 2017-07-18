@@ -225,11 +225,13 @@ class KNN_Compute(Function):
 
 
 class FastKNNCell(nn.Module):
-    def __init__(self, n_in, n_out, rnn_dropout=0.0, use_tanh=0):
+    def __init__(self, n_in, n_out, dropout=0.0, rnn_dropout=0.0, out_dropout=0.0, use_tanh=0):
         super(FastKNNCell, self).__init__()
         self.n_in = n_in
         self.n_out = n_out
-        self.rnn_dropout = rnn_dropout
+        self.dropout = dropout
+        self.rnn_dropout = rnn_dropout or dropout
+        self.out_dropout = out_dropout or dropout
         self.use_tanh = use_tanh
 
         self.weight = nn.Parameter(torch.Tensor(n_in, n_out, 3))
@@ -257,6 +259,11 @@ class FastKNNCell(nn.Module):
             if input.dim() == 3:
                 x_transformed = x_transformed.view(-1, batch, n_out)
             h, c = KNN_Compute(self.use_tanh)(u, x_transformed, self.bias, c0)
+
+        if self.training and (self.out_dropout>0):
+            mask_h = self.get_dropout_mask_((batch, n_out), self.out_dropout)
+            h = h * mask_h.expand_as(h)
+
         return h, c
 
     def get_dropout_mask_(self, size, p):
@@ -265,7 +272,8 @@ class FastKNNCell(nn.Module):
 
 
 class FastKNN(nn.Module):
-    def __init__(self, n_in, n_out, depth, rnn_dropout=0.0, use_tanh=0):
+    def __init__(self, n_in, n_out, depth, dropout=0.0,
+                    out_dropout=0.0, rnn_dropout=0.0, use_tanh=0):
         super(FastKNN, self).__init__()
         self.n_in = n_in
         self.n_out = n_out
@@ -278,7 +286,9 @@ class FastKNN(nn.Module):
             l = FastKNNCell(
                 n_in = n_in if i==0 else n_out,
                 n_out = n_out,
+                dropout = dropout,
                 rnn_dropout = rnn_dropout,
+                out_dropout = out_dropout,
                 use_tanh = use_tanh
             )
             self.rnn_lst.append(l)

@@ -68,7 +68,8 @@ class Model(nn.Module):
         self.n_V = self.embedding_layer.n_V
         #self.rnn = nn.LSTM(self.n_d, self.n_d, self.depth)
         self.rnn = MF.FastKNN(self.n_d, self.n_d, self.depth,
-            rnn_dropout = args.rnn_dropout
+            rnn_dropout = args.rnn_dropout,
+            out_dropout = args.rnn_dropout
         )
         self.output_layer = nn.Linear(self.n_d, self.n_V)
         # tie weights
