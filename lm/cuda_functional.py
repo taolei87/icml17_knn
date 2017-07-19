@@ -138,7 +138,7 @@ extern "C" {
 }
 """
 
-KNN_PROG = Program(KNN_CODE, 'knn_prog.cu')
+KNN_PROG = Program(KNN_CODE.encode('utf-8'), 'knn_prog.cu'.encode('utf-8'))
 KNN_PTX = KNN_PROG.compile()
 KNN_MOD = function.Module()
 KNN_MOD.load(bytes(KNN_PTX.encode()))
@@ -161,7 +161,7 @@ class KNN_Compute(Function):
         d = x.size(-1)
         ncols = batch*d
         thread_per_block = min(512, ncols)
-        num_block = (ncols-1)/thread_per_block+1
+        num_block = (ncols-1)//thread_per_block+1
 
         init_ = x.new(ncols).zero_() if init is None else init
         c = x.new(*x.size())
@@ -193,7 +193,7 @@ class KNN_Compute(Function):
         d = x.size(-1)
         ncols = batch*d
         thread_per_block = min(512, ncols)
-        num_block = (ncols-1)/thread_per_block+1
+        num_block = (ncols-1)//thread_per_block+1
 
         init_ = x.new(ncols).zero_() if init is None else init
         grad_u = u.new(*u.size())
@@ -317,9 +317,9 @@ def test1():
     for i in range(1000):
         out = cell(a, h)
         out[0].sum().backward()
-    print "test1: {:.6f}".format(
+    print ("test1: {:.6f}".format(
         (time.time()-start)/1000
-    )
+    ))
 
     L = 5
     M = 20
@@ -331,7 +331,7 @@ def test1():
         Variable(torch.randn(M,D).float().cuda(), requires_grad=True)
     )
     test_grad = gradcheck(KNN_Compute(1), input_pair, eps=1e-3, atol=1e-3)
-    print test_grad
+    print (test_grad)
 
 #def test2():
 #    a = Variable(torch.FloatTensor(100, 32, 1024).zero_().add(0.5).cuda())
@@ -354,9 +354,9 @@ def test3():
         out = cell(a, (h,h))
         out[0].sum().backward()
         #out[0][0,0,0].backward()
-    print "test3: {:.6f}".format(
+    print ("test3: {:.6f}".format(
         (time.time()-start)/1000
-    )
+    ))
 
 
 if __name__=="__main__":

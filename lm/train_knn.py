@@ -24,7 +24,7 @@ def read_corpus(path, eos="</s>"):
 def create_batches(data_text, map_to_ids, batch_size, cuda):
     data_ids = map_to_ids(data_text)
     N = len(data_ids)
-    L = ((N-1)/batch_size) * batch_size
+    L = ((N-1)//batch_size) * batch_size
     x = np.copy(data_ids[:L].reshape(batch_size,-1).T)
     y = np.copy(data_ids[1:L+1].reshape(batch_size,-1).T)
     x, y = torch.from_numpy(x), torch.from_numpy(y)
@@ -109,7 +109,7 @@ def train_model(epoch, model, train):
 
     unroll_size = args.unroll_size
     batch_size = args.batch_size
-    N = (len(train[0])-1)/unroll_size + 1
+    N = (len(train[0])-1)//unroll_size + 1
     lr = args.lr
 
     start_time = time.time()
@@ -163,7 +163,7 @@ def eval_model(prefix, model, valid):
     unroll_size = model.args.unroll_size
     criterion = nn.CrossEntropyLoss(size_average=False)
     hidden = model.init_hidden(1)
-    N = (len(valid[0])-1)/unroll_size + 1
+    N = (len(valid[0])-1)//unroll_size + 1
     for i in range(N):
         x = valid[0][i*unroll_size:(i+1)*unroll_size]
         y = valid[1][i*unroll_size:(i+1)*unroll_size].view(-1)
@@ -245,5 +245,5 @@ if __name__ == "__main__":
     argparser.add_argument("--clip_grad", type=float, default=5)
 
     args = argparser.parse_args()
-    print args
+    print (args)
     main(args)
