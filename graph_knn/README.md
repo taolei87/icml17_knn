@@ -1,4 +1,4 @@
-# Graph Kernel Networks
+# Weisfeiler-Lehman Kernel Network
 This directory contains implementations of 
 * [Neural Fingerprint](https://hips.seas.harvard.edu/files/duvenaud-graphs-nips-2015.pdf)
 * [Embedded Loopy BP](https://arxiv.org/abs/1603.05629)
@@ -13,6 +13,10 @@ We thank [Hanjun Dai](http://www.cc.gatech.edu/~hdai8/) and Prof. [Le Song](http
 
 ## Usage
 All codes are tested on tensorflow 0.12.0, with CUDA 8.0
+Suppose you downloaded our code at $BASEDIR/graph_knn, please run the following command to add all modules in the pythonpath.
+```
+export PYTHONPATH=$BASEDIR/graph_knn
+```
 
 Training: 
 ```
