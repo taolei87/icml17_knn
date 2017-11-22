@@ -12,7 +12,8 @@ Data can be downloaded from `https://drive.google.com/drive/folders/0B0GLTTNiVPE
 We thank [Hanjun Dai](http://www.cc.gatech.edu/~hdai8/) and Prof. [Le Song](http://www.cc.gatech.edu/~lsong/) for sharing this dataset.
 
 ## Usage
-All codes are tested on tensorflow 0.12.0, with CUDA 8.0
+All codes are tested on tensorflow 0.12.0, with CUDA 8.0.
+
 Suppose you downloaded our code at $BASEDIR/graph_knn, please run the following command to add all modules in the pythonpath.
 ```
 export PYTHONPATH=$BASEDIR/graph_knn
